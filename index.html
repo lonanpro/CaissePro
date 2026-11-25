@@ -5,11 +5,122 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>CaissePro Mobile</title>
   <style>
-    body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #0f172a; }
-    iframe { width: 100%; height: 100%; border: none; }
+    * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { margin: 0; padding: 16px; background: #0f172a; color: #f8fafc; }
+    h1 { font-size: 20px; text-align: center; margin-bottom: 16px; color: #38bdf8; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+    .card { background: #1e293b; padding: 14px; border-radius: 12px; border: 1px solid #334155; }
+    .card.full { grid-column: span 2; background: #064e3b; border-color: #10b981; }
+    .card.warn { background: #451a03; border-color: #f59e0b; }
+    .label { font-size: 12px; color: #94a3b8; text-transform: uppercase; }
+    .val { font-size: 20px; font-weight: bold; margin-top: 4px; }
+    .form-box { background: #1e293b; padding: 16px; border-radius: 14px; }
+    label { display: block; font-size: 13px; margin-top: 12px; color: #cbd5e1; }
+    input, select { width: 100%; padding: 12px; margin-top: 5px; border-radius: 8px; border: 1px solid #475569; background: #0f172a; color: white; font-size: 15px; }
+    button { width: 100%; padding: 14px; margin-top: 20px; background: #10b981; color: #0f172a; font-weight: bold; font-size: 16px; border: none; border-radius: 10px; cursor: pointer; }
+    button:disabled { background: #475569; color: #94a3b8; }
+    #msg { text-align: center; margin-top: 12px; font-weight: bold; color: #34d399; }
   </style>
 </head>
 <body>
-  <iframe src="https://script.google.com/macros/s/AKfycby6AjjVWUUyLIGMBgO57snqtGZDO6OkG_E2easmUMUZd0pDShxPhhJrHT6HQARAGl8G/exec"></iframe>
+
+  <h1>📊 CaissePro Mobile</h1>
+
+  <div class="grid">
+    <div class="card full">
+      <div class="label">Bénéfice Net Encaissé</div>
+      <div class="val" id="benefice">Chargement...</div>
+    </div>
+    <div class="card">
+      <div class="label">Chiffre d'Affaires</div>
+      <div class="val" id="ca">...</div>
+    </div>
+    <div class="card warn">
+      <div class="label">Chez Livreurs</div>
+      <div class="val" id="livreurs">...</div>
+    </div>
+  </div>
+
+  <div class="form-box">
+    <div style="font-weight:bold; font-size:16px; margin-bottom:6px;">➕ Nouvelle Vente</div>
+    
+    <label>Nom du client</label>
+    <input type="text" id="client" placeholder="Ex: Koné Awa">
+
+    <label>Produit vendu</label>
+    <select id="produit"></select>
+
+    <label>Quantité</label>
+    <input type="number" id="quantite" value="1" min="1">
+
+    <label>Nom du livreur</label>
+    <input type="text" id="livreur" placeholder="Ex: Moussa">
+
+    <label>Statut du paiement</label>
+    <select id="statut">
+      <option value="En cours (Chez livreur)">En cours (Chez livreur)</option>
+      <option value="Payé">Payé (Encaissé)</option>
+      <option value="Annulé">Annulé</option>
+    </select>
+
+    <button id="btnSave" onclick="sauvegarder()">Enregistrer la vente</button>
+    <div id="msg"></div>
+  </div>
+
+  <script>
+    // COLLEZ VOTRE URL /exec DE GOOGLE APPS SCRIPT ENTRE LES GUILLEMETS CI-DESSOUS :
+    const API_URL = "COLLEZ_VOTRE_URL_EXEC_ICI";
+
+    function chargerDonnees() {
+      fetch(API_URL)
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById('benefice').innerText = data.benefice.toLocaleString('fr-FR') + ' FCFA';
+          document.getElementById('ca').innerText = data.ca.toLocaleString('fr-FR') + ' FCFA';
+          document.getElementById('livreurs').innerText = data.livreurs.toLocaleString('fr-FR') + ' FCFA';
+
+          const select = document.getElementById('produit');
+          select.innerHTML = '';
+          data.produits.forEach(p => {
+            let opt = document.createElement('option');
+            opt.value = p.nom;
+            opt.innerText = p.nom + ' (' + p.prixVente.toLocaleString('fr-FR') + ' F - Stock: ' + p.stockRestant + ')';
+            select.appendChild(opt);
+          });
+        })
+        .catch(err => {
+          document.getElementById('benefice').innerText = "Erreur de connexion API";
+        });
+    }
+
+    function sauvegarder() {
+      const btn = document.getElementById('btnSave');
+      btn.disabled = true;
+      btn.innerText = "Enregistrement...";
+
+      const vente = {
+        client: document.getElementById('client').value || "Client Boutique",
+        produit: document.getElementById('produit').value,
+        quantite: document.getElementById('quantite').value,
+        livreur: document.getElementById('livreur').value || "Boutique",
+        statut: document.getElementById('statut').value
+      };
+
+      fetch(API_URL, {
+        method: 'POST',
+        body: JSON.stringify(vente)
+      })
+      .then(res => res.json())
+      .then(reponse => {
+        document.getElementById('msg').innerText = reponse.message;
+        document.getElementById('client').value = "";
+        btn.disabled = false;
+        btn.innerText = "Enregistrer la vente";
+        chargerDonnees();
+      });
+    }
+
+    window.onload = chargerDonnees;
+  </script>
 </body>
 </html>
